@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from requests import Session
 from bookings.models import Booking
 import json
@@ -63,7 +63,7 @@ class AimHarderSession:
 
 def run():
 
-    tomorrow = datetime.now() # + timedelta(days=1)
+    tomorrow = datetime.now() + timedelta(days=1)
     bookings = Booking.objects.filter(date=tomorrow)
 
     for booking in bookings:
