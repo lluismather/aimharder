@@ -1,30 +1,27 @@
 from datetime import datetime, timedelta
 from requests import Session
 from bookings.models import Booking
-import json
 
 # aimharder class
 class AimHarderSession:
 
-    def __init__(self, email, password):
-        # constants
+    def __init__(self, username, password):
         self.BOX_ID = 8244
         self.BOX_NAME = 'crossfitgrau'
         self.LOGIN_ENDPOINT = 'https://aimharder.com/login'
         self.CLASS_API_ENDPOINT = f'https://{self.BOX_NAME}.aimharder.com/api/bookings'
         self.BOOKINGS_API_ENDPOINT = f'https://{self.BOX_NAME}.aimharder.com/api/book'
-        # variables
-        self.email = email
+        self.username = username
         self.password = password
         self.session = Session()
         self.last_response = None
         self.class_list = None
-        # login on init
+        self.date = None
         self.login()
 
     def login(self):
         data = {
-            'mail': self.email,
+            'mail': self.username,
             'pw': self.password,
             'login': 'Log in'
         }
@@ -35,6 +32,7 @@ class AimHarderSession:
         self.last_response = response
 
     def get_classes(self, date):
+        self.date = date
         class_list = self.session.get(
             self.CLASS_API_ENDPOINT,
             params = {
@@ -48,7 +46,7 @@ class AimHarderSession:
     def book_class(self, class_id):
         data = {
             'id': class_id,
-            'box': self.BOX_ID,
+            'day': self.date,
             'family_id': '',
             'insist': 0,
         }
@@ -56,8 +54,33 @@ class AimHarderSession:
             self.BOOKINGS_API_ENDPOINT,
             data = data
         )
-        self.last_response = response
+        return response
+    
+    def check_booking_status(self):
+        if self.last_response.status_code == 200:
+            response = self.last_response.json()
+            # error
+            if "bookState" in response:
+                match response['bookState']:
+                    case -2:
+                        print('You have spent all your classes')
+                    case -1:
+                        print('This class is full')
+                    case -4:
+                        print('You can\'t book classes with more than 1 days of anticipation')
+                    case -5:
+                        print('The reservation cannot be made because you have at least one outstanding payment')
+                    case -7:
+                        print('You can\'t book classes with less than 15 minutes of anticipation')
+                    case -8:
+                        print('You cannot make more than 1 reservations for the same class on a day')
+                    
+            if "errorMssg" not in response and "errorMssgLang" not in response:
+                print('Booking successful')
+                return
 
+        print('Booking failed')
+        
 
 # main
 
@@ -99,12 +122,9 @@ def run():
 
                 # if booking response successful
                 if aimharder.last_response.status_code == 200:
-                    
-                    # parse response
-                    bookstate = json.loads(aimharder.last_response.content.decode('utf-8'))
-                    
-                    # booking failed
-                    if bookstate['bookState'] == -2:
-                        
-                        print('booking failed')
 
+                    #TODO check booking status and return errors
+                    # have added case in check_booking_status
+                    # but content returns big html string
+                    # aimharder.check_booking_status()
+                    print('Booking attempted. Check Aimharder to confirm your booking was made')
