@@ -60,22 +60,22 @@ class AimHarderSession:
         if self.last_response.status_code == 200:
             response = self.last_response.json()
             # error
-            if "bookState" in response:
+            if 'bookState' in response:
                 match response['bookState']:
                     case -2:
-                        print('You have spent all your classes')
+                        print('you have spent all your classes')
                     case -1:
-                        print('This class is full')
+                        print('this class is full')
                     case -4:
-                        print('You can\'t book classes with more than 1 days of anticipation')
+                        print('you can\'t book classes with more than 1 days of anticipation')
                     case -5:
-                        print('The reservation cannot be made because you have at least one outstanding payment')
+                        print('the reservation cannot be made because you have at least one outstanding payment')
                     case -7:
-                        print('You can\'t book classes with less than 15 minutes of anticipation')
+                        print('you can\'t book classes with less than 15 minutes of anticipation')
                     case -8:
-                        print('You cannot make more than 1 reservations for the same class on a day')
+                        print('you cannot make more than 1 reservations for the same class on a day')
                     
-            if "errorMssg" not in response and "errorMssgLang" not in response:
+            if 'errorMssg' not in response and 'errorMssgLang' not in response:
                 print('Booking successful')
                 return
 
