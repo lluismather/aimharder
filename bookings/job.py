@@ -99,8 +99,10 @@ class AimHarderSession:
 
 def run():
 
-    tomorrow = datetime.now() + timedelta(days=1)
-    bookings = Booking.objects.filter(date=tomorrow)
+    day = datetime.now()
+    bookings = Booking.objects.filter(date=day)
+    # wait so it doesn't look suspicious
+    time.sleep(30)
 
     for booking in bookings:
 
@@ -113,7 +115,7 @@ def run():
             print('login successful')
             
             # get classes
-            aimharder.get_classes(tomorrow.strftime("%Y%m%d"))
+            aimharder.get_classes(day.strftime("%Y%m%d"))
 
             # if there are classes
             if aimharder.class_list['bookings']:
