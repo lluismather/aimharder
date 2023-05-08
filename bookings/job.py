@@ -99,14 +99,16 @@ class AimHarderSession:
 
 def run():
 
-    day = datetime.now()
+    day = datetime.now() + timedelta(days=1)
     bookings = Booking.objects.filter(date=day)
     # wait so it doesn't look suspicious
+    print('waiting...')
     time.sleep(30)
 
     for booking in bookings:
 
         # log in
+        print('booking for ' + booking.user.name)
         aimharder = AimHarderSession(booking.user.email, booking.user.password)
 
         # if login successful
