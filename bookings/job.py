@@ -101,9 +101,9 @@ def run():
 
     day = datetime.now() + timedelta(days=1)
     bookings = Booking.objects.filter(date=day)
-    # wait so it doesn't look suspicious
-    print('waiting...')
-    time.sleep(30)
+    # wait so it doesn't look suspicious 👀
+    print('Let\'s go...')
+    # time.sleep(30)
 
     for booking in bookings:
 
@@ -131,8 +131,13 @@ def run():
                         and lesson['className'] == booking.type
                 ][0]
 
+                xf_class = workout['className'] or 'Unknown'
+                xf_box = workout['boxName'] or 'Crossfit Grau'
+                xf_coach = workout['coachName'] or 'Unknown Coach'
+                xf_time = workout['time'] or 'Unknown Time'
+
                 # book the class
-                print('booking the class ' + workout['className'] + ' @ ' + workout['boxName'] + ': ' + workout['coachName'] + ' ' +  workout['time'])
+                print('booking the class ' + xf_class + ' at ' + xf_time + ' with ' + xf_coach + ' at ' + xf_box)
                 aimharder.book_class(workout['id'])
 
                 if aimharder.last_response.status_code == 200:
