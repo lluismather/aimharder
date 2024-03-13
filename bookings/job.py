@@ -125,11 +125,26 @@ def run():
                 print(f"found {len(aimharder.class_list['bookings'])} classes")
 
                 # find the class
-                workout = [
-                    lesson for lesson in aimharder.class_list['bookings'] 
-                    if lesson['timeid'] == f'{booking.time.strftime("%H%M")}_60' 
-                        and lesson['className'] == booking.type
-                ][0]
+                try:
+                    workout = [
+                        lesson for lesson in aimharder.class_list['bookings']
+                        if lesson['timeid'] == f'{booking.time.strftime("%H%M")}_30' 
+                            and lesson['className'] == booking.type
+                    ][0]
+                except:
+                    workout = None
+
+                # if there is no class, try 90 mins
+                if not workout:
+                    print('no class found, trying 90 mins')
+                    try:
+                        workout = [
+                            lesson for lesson in aimharder.class_list['bookings']
+                            if lesson['timeid'] == f'{booking.time.strftime("%H%M")}_90' 
+                                and lesson['className'] == booking.type
+                        ][0]
+                    except:
+                        workout = None
 
                 xf_class = workout['className'] or 'Unknown'
                 xf_box = workout['boxName'] or 'Crossfit Grau'
