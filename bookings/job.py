@@ -128,7 +128,7 @@ def run():
                 try:
                     workout = [
                         lesson for lesson in aimharder.class_list['bookings']
-                        if lesson['timeid'] == f'{booking.time.strftime("%H%M")}_30' 
+                        if lesson['timeid'] == f'{booking.time.strftime("%H%M")}_60' 
                             and lesson['className'] == booking.type
                     ][0]
                 except:
