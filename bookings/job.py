@@ -120,7 +120,7 @@ def run():
             # add together booking.time to booking.date
             booking_datetime = datetime.combine(booking.date, booking.time)
             
-            time_to_wait = booking_datetime - slot_start
+            time_to_wait = slot_start - now
             print(f'waiting {time_to_wait.seconds} seconds...')
             time.sleep(time_to_wait.seconds)
             
