@@ -122,7 +122,7 @@ def run():
             
             time_to_wait = slot_start - now
             print(f'waiting {time_to_wait.seconds} seconds...')
-            time.sleep(time_to_wait.seconds)
+            time.sleep(time_to_wait.seconds if time_to_wait.seconds > 0 else 0)
             
             print('booking class for ' + booking.user.name)
             aimharder = AimHarderSession(booking.user.email, booking.user.password)
