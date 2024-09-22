@@ -130,7 +130,13 @@ def run():
             if aimharder.last_response.status_code == 200:
     
                 print('login successful')
-                aimharder.get_classes(booking.date.strftime("%Y%m%d"))
+                retrieved_booking = Booking.objects.get(id=booking.id)
+
+                if not retrieved_booking.time:
+                    print('booking already done, exiting...')
+                    continue
+
+                aimharder.get_classes(retrieved_booking.date.strftime("%Y%m%d"))
     
                 if aimharder.class_list['bookings']:
     
@@ -139,8 +145,8 @@ def run():
                     try:
                         workout = [
                             lesson for lesson in aimharder.class_list['bookings']
-                            if lesson['timeid'] == f'{booking.time.strftime("%H%M")}_60' 
-                                and lesson['className'] == booking.type
+                            if lesson['timeid'] == f'{retrieved_booking.time.strftime("%H%M")}_60' 
+                                and lesson['className'] == retrieved_booking.type
                         ][0]
                     except:
                         workout = None
@@ -150,8 +156,8 @@ def run():
                         try:
                             workout = [
                                 lesson for lesson in aimharder.class_list['bookings']
-                                if lesson['timeid'] == f'{booking.time.strftime("%H%M")}_90' 
-                                    and lesson['className'] == booking.type
+                                if lesson['timeid'] == f'{retrieved_booking.time.strftime("%H%M")}_90' 
+                                    and lesson['className'] == retrieved_booking.type
                             ][0]
                         except:
                             workout = None
@@ -167,8 +173,8 @@ def run():
 
                     if aimharder.last_response.status_code == 200:
                         aimharder.check_booking_status()
-                        booking.time = "00:00:00"
-                        booking.save()
+                        retrieved_booking.time = "00:00:00"
+                        retrieved_booking.save()
                     else:
                         print('Booking failed')
 
