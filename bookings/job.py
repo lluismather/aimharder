@@ -102,7 +102,7 @@ def run():
     now = datetime.now()
     slot_date = now + timedelta(days=1)
     slot_start = now + timedelta(hours=22)
-    slot_end = now + timedelta(hours=22) + timedelta(minutes=35)
+    slot_end = now + timedelta(hours=22) + timedelta(minutes=10)
 
     print(f'checking bookings from {slot_start} to {slot_end}')
 
