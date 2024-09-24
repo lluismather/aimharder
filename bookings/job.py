@@ -100,9 +100,13 @@ class AimHarderSession:
 def run():
 
     now = datetime.now()
+    delta = timedelta(hours=22)
     slot_date = now + timedelta(days=1)
-    slot_start = now + timedelta(hours=22)
-    slot_end = now + timedelta(hours=22) + timedelta(minutes=10)
+    slot_start = now + delta
+    slot_end = now + delta + timedelta(minutes=15)
+
+    def time_to_wait(booking, delta, now):
+        return booking - delta - now
 
     print(f'checking bookings from {slot_start} to {slot_end}')
 
@@ -117,12 +121,16 @@ def run():
 
     for booking in bookings:
 
-            # add together booking.time to booking.date
             booking_datetime = datetime.combine(booking.date, booking.time)
             
-            time_to_wait = slot_start - now
-            print(f'waiting {time_to_wait.seconds} seconds...')
-            time.sleep(time_to_wait.seconds if time_to_wait.seconds > 0 else 0)
+            while time_to_wait(booking_datetime, delta, now).seconds > 60:
+                now = datetime.now()
+                print(f'waiting {time_to_wait(booking_datetime, delta, now).seconds} seconds...')
+                time.sleep(60)
+            
+            ttw = time_to_wait(booking_datetime, delta, now).seconds
+            print('waiting ' + str(ttw) + ' seconds...')
+            time.sleep(ttw)
             
             print('booking class for ' + booking.user.name)
             aimharder = AimHarderSession(booking.user.email, booking.user.password)
@@ -169,9 +177,9 @@ def run():
 
                     # book the class
                     print('booking the class ' + xf_class + ' at ' + xf_time + ' with ' + xf_coach + ' at ' + xf_box)
-                    aimharder.book_class(workout['id'])
+                    # aimharder.book_class(workout['id'])
 
-                    if aimharder.last_response.status_code == 200:
+                    if aimharder.last_response and aimharder.last_response.status_code == 200:
                         aimharder.check_booking_status()
                         retrieved_booking.time = "00:00:00"
                         retrieved_booking.save()
