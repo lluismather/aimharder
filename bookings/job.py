@@ -130,6 +130,9 @@ def run():
             
             while time_to_wait(booking_datetime, delta, now).seconds > 60:
                 now = get_now()
+                ttw = time_to_wait(booking_datetime, delta, now)
+                if ttw.seconds < 60:
+                    break
                 print(f'waiting {time_to_wait(booking_datetime, delta, now).seconds} seconds...')
                 time.sleep(60)
             
@@ -182,7 +185,7 @@ def run():
 
                     # book the class
                     print('booking the class ' + xf_class + ' at ' + xf_time + ' with ' + xf_coach + ' at ' + xf_box)
-                    # aimharder.book_class(workout['id'])
+                    aimharder.book_class(workout['id'])
 
                     if aimharder.last_response and aimharder.last_response.status_code == 200:
                         aimharder.check_booking_status()
