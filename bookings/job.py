@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from requests import Session
 from bookings.models import Booking
 import time
@@ -99,14 +99,19 @@ class AimHarderSession:
 
 def run():
 
-    now = datetime.now()
+    def get_now():
+        return datetime.now(tz=timezone.utc) + timedelta(hours=2)
+
+    def time_to_wait(booking, delta, now):
+        return booking - delta - now
+
+    # set timezone to CEST
+    now = get_now()
+    print("now is " + str(now))
     delta = timedelta(hours=22)
     slot_date = now + timedelta(days=1)
     slot_start = now + delta
     slot_end = now + delta + timedelta(minutes=15)
-
-    def time_to_wait(booking, delta, now):
-        return booking - delta - now
 
     print(f'checking bookings from {slot_start} to {slot_end}')
 
@@ -124,7 +129,7 @@ def run():
             booking_datetime = datetime.combine(booking.date, booking.time)
             
             while time_to_wait(booking_datetime, delta, now).seconds > 60:
-                now = datetime.now()
+                now = get_now()
                 print(f'waiting {time_to_wait(booking_datetime, delta, now).seconds} seconds...')
                 time.sleep(60)
             
