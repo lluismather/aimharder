@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 from requests import Session
 from bookings.models import Booking
 import time
+from zoneinfo import ZoneInfo
 
 # aimharder class
 # aimharder class
@@ -100,12 +101,11 @@ class AimHarderSession:
 def run():
 
     def get_now():
-        return datetime.now(tz=timezone.utc) + timedelta(hours=2)
+        return datetime.now(tz=ZoneInfo('Europe/Berlin'))
 
     def time_to_wait(booking, delta, now):
         return booking - delta - now
 
-    # set timezone to CEST
     now = get_now()
     print("now is " + str(now))
     delta = timedelta(hours=22)
@@ -126,7 +126,7 @@ def run():
 
     for booking in bookings:
 
-            booking_datetime = datetime.combine(booking.date, booking.time)
+            booking_datetime = datetime.combine(booking.date, booking.time, tzinfo=ZoneInfo('Europe/Berlin'))
             
             while time_to_wait(booking_datetime, delta, now).seconds > 60:
                 now = get_now()
