@@ -108,6 +108,7 @@ def time_to_wait(booking, delta, now):
 def book_session(args):
 
     idx, booking, delta, now = args
+    booking = Booking.objects.get(id=booking.id)
     booking_datetime = datetime.combine(booking.date, booking.time, tzinfo=ZoneInfo('Europe/Berlin'))
             
     while time_to_wait(booking_datetime, delta, now).seconds > 60:
