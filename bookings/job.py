@@ -107,8 +107,7 @@ def time_to_wait(booking, delta, now):
 
 def book_session(args):
 
-    idx, booking, delta, now = args
-    booking = Booking.objects.get(id=booking.id)
+    idx, booking, user, delta, now = args
     booking_datetime = datetime.combine(booking.date, booking.time, tzinfo=ZoneInfo('Europe/Berlin'))
             
     while time_to_wait(booking_datetime, delta, now).seconds > 60:
@@ -123,8 +122,8 @@ def book_session(args):
     print('waiting ' + str(ttw) + ' seconds...')
     time.sleep(ttw)
     
-    print('booking class for ' + booking.user.name)
-    aimharder = AimHarderSession(booking.user.email, booking.user.password)
+    print('booking class for ' + user.name)
+    aimharder = AimHarderSession(user.email, user.password)
 
     if aimharder.last_response.status_code == 200:
 
@@ -199,7 +198,7 @@ def run():
         print('no bookings found')
 
     # run this in parallel
-    pool_args = [(idx, booking, delta, now) for idx, booking in enumerate(bookings)]
+    pool_args = [(idx, booking, booking.user, delta, now) for idx, booking in enumerate(bookings)]
     with Pool(2) as p:
         logs = p.map(book_session, pool_args)
 
