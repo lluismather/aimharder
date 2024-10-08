@@ -3,8 +3,8 @@ from requests import Session
 from bookings.models import Booking
 import time
 from zoneinfo import ZoneInfo
+from multiprocessing import Pool
 
-# aimharder class
 # aimharder class
 
 class AimHarderSession:
@@ -97,14 +97,87 @@ class AimHarderSession:
 # main
 
 
+def get_now():
+    return datetime.now(tz=ZoneInfo('Europe/Berlin'))
+
+
+def time_to_wait(booking, delta, now):
+    return booking - delta - now
+
+
+def book_session(args):
+
+    idx, booking, delta = args
+    booking_datetime = datetime.combine(booking.date, booking.time, tzinfo=ZoneInfo('Europe/Berlin'))
+            
+    while time_to_wait(booking_datetime, delta, now).seconds > 60:
+        now = get_now()
+        ttw = time_to_wait(booking_datetime, delta, now)
+        if ttw.seconds < 60:
+            break
+        print(f'waiting {time_to_wait(booking_datetime, delta, now).seconds} seconds...')
+        time.sleep(60)
+    
+    ttw = time_to_wait(booking_datetime, delta, now).seconds
+    print('waiting ' + str(ttw) + ' seconds...')
+    time.sleep(ttw)
+    
+    print('booking class for ' + booking.user.name)
+    aimharder = AimHarderSession(booking.user.email, booking.user.password)
+
+    if aimharder.last_response.status_code == 200:
+
+        print('login successful')
+        retrieved_booking = Booking.objects.get(id=booking.id)
+
+        if not retrieved_booking.time:
+            print('booking already done, exiting...')
+            return f'booking {idx} already done'
+
+        aimharder.get_classes(retrieved_booking.date.strftime("%Y%m%d"))
+
+        if aimharder.class_list['bookings']:
+
+            print(f"found {len(aimharder.class_list['bookings'])} classes")
+
+            try:
+                workout = [
+                    lesson for lesson in aimharder.class_list['bookings']
+                    if lesson['timeid'] == f'{retrieved_booking.time.strftime("%H%M")}_60' 
+                        and lesson['className'] == retrieved_booking.type
+                ][0]
+            except:
+                workout = None
+
+            if not workout:
+                print('no class found, trying 90 mins')
+                try:
+                    workout = [
+                        lesson for lesson in aimharder.class_list['bookings']
+                        if lesson['timeid'] == f'{retrieved_booking.time.strftime("%H%M")}_90' 
+                            and lesson['className'] == retrieved_booking.type
+                    ][0]
+                except:
+                    workout = None
+
+            xf_class = workout['className'] or 'Unknown'
+            xf_box = workout['boxName'] or 'Full Crossfit Valencia'
+            xf_coach = workout['coachName'] or 'Unknown Coach'
+            xf_time = workout['time'] or 'Unknown Time'
+
+            # book the class
+            print('booking the class ' + xf_class + ' at ' + xf_time + ' with ' + xf_coach + ' at ' + xf_box)
+            aimharder.book_class(workout['id'])
+
+            if aimharder.last_response and aimharder.last_response.status_code == 200:
+                aimharder.check_booking_status()
+                retrieved_booking.time = "00:00:00"
+                retrieved_booking.save()
+            else:
+                print('Booking failed')
+
 
 def run():
-
-    def get_now():
-        return datetime.now(tz=ZoneInfo('Europe/Berlin'))
-
-    def time_to_wait(booking, delta, now):
-        return booking - delta - now
 
     now = get_now()
     print("now is " + str(now))
@@ -124,74 +197,10 @@ def run():
     if not bookings:
         print('no bookings found')
 
-    for booking in bookings:
+    # run this in parallel
+    pool_args = [(idx, booking, delta) for idx, booking in enumerate(bookings)]
+    with Pool(2) as p:
+        logs = p.map(book_session, pool_args)
 
-            booking_datetime = datetime.combine(booking.date, booking.time, tzinfo=ZoneInfo('Europe/Berlin'))
-            
-            while time_to_wait(booking_datetime, delta, now).seconds > 60:
-                now = get_now()
-                ttw = time_to_wait(booking_datetime, delta, now)
-                if ttw.seconds < 60:
-                    break
-                print(f'waiting {time_to_wait(booking_datetime, delta, now).seconds} seconds...')
-                time.sleep(60)
-            
-            ttw = time_to_wait(booking_datetime, delta, now).seconds
-            print('waiting ' + str(ttw) + ' seconds...')
-            time.sleep(ttw)
-            
-            print('booking class for ' + booking.user.name)
-            aimharder = AimHarderSession(booking.user.email, booking.user.password)
-    
-            if aimharder.last_response.status_code == 200:
-    
-                print('login successful')
-                retrieved_booking = Booking.objects.get(id=booking.id)
-
-                if not retrieved_booking.time:
-                    print('booking already done, exiting...')
-                    continue
-
-                aimharder.get_classes(retrieved_booking.date.strftime("%Y%m%d"))
-    
-                if aimharder.class_list['bookings']:
-    
-                    print(f"found {len(aimharder.class_list['bookings'])} classes")
-    
-                    try:
-                        workout = [
-                            lesson for lesson in aimharder.class_list['bookings']
-                            if lesson['timeid'] == f'{retrieved_booking.time.strftime("%H%M")}_60' 
-                                and lesson['className'] == retrieved_booking.type
-                        ][0]
-                    except:
-                        workout = None
-    
-                    if not workout:
-                        print('no class found, trying 90 mins')
-                        try:
-                            workout = [
-                                lesson for lesson in aimharder.class_list['bookings']
-                                if lesson['timeid'] == f'{retrieved_booking.time.strftime("%H%M")}_90' 
-                                    and lesson['className'] == retrieved_booking.type
-                            ][0]
-                        except:
-                            workout = None
-    
-                    xf_class = workout['className'] or 'Unknown'
-                    xf_box = workout['boxName'] or 'Full Crossfit Valencia'
-                    xf_coach = workout['coachName'] or 'Unknown Coach'
-                    xf_time = workout['time'] or 'Unknown Time'
-
-                    # book the class
-                    print('booking the class ' + xf_class + ' at ' + xf_time + ' with ' + xf_coach + ' at ' + xf_box)
-                    aimharder.book_class(workout['id'])
-
-                    if aimharder.last_response and aimharder.last_response.status_code == 200:
-                        aimharder.check_booking_status()
-                        retrieved_booking.time = "00:00:00"
-                        retrieved_booking.save()
-                    else:
-                        print('Booking failed')
-
-        # exit
+    print(logs)
+    # ends
