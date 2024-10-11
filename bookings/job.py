@@ -181,8 +181,8 @@ def run():
 
     now = get_now()
     print("now is " + str(now))
-    delta = timedelta(hours=22)
-    slot_date = now + timedelta(days=1)
+    delta = timedelta(hours=2, minutes=57)
+    slot_date = now + timedelta(days=0)
     slot_start = now + delta
     slot_end = now + delta + timedelta(minutes=15)
 
@@ -194,13 +194,23 @@ def run():
         time__lte = slot_end.time()
     ).order_by('time')
 
+    print(f'found {len(bookings)} bookings')
+    input('press enter to continue...')
+
     if not bookings:
         print('no bookings found')
+        return
+
+    pool_len = len(bookings) if len(bookings) < 2 else 2
 
     # run this in parallel
     pool_args = [(idx, booking, booking.user, delta, now) for idx, booking in enumerate(bookings)]
-    with Pool(2) as p:
+    with Pool(pool_len) as p:
         logs = p.map(book_session, pool_args)
 
     print(logs)
     # ends
+
+if __name__ == '__main__':
+    run()
+

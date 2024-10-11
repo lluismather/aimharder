@@ -7,4 +7,6 @@ django.setup()
 settings.DEBUG = False
 
 from bookings import job
-job.run()
+
+if __name__ == '__main__':
+    job.run()
