@@ -181,7 +181,7 @@ def run():
 
     now = get_now()
     print("now is " + str(now))
-    delta = timedelta(hours=2, minutes=57)
+    delta = timedelta(hours=2, minutes=48)
     slot_date = now + timedelta(days=0)
     slot_start = now + delta
     slot_end = now + delta + timedelta(minutes=15)
@@ -195,7 +195,6 @@ def run():
     ).order_by('time')
 
     print(f'found {len(bookings)} bookings')
-    input('press enter to continue...')
 
     if not bookings:
         print('no bookings found')
