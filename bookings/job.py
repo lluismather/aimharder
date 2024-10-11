@@ -181,10 +181,10 @@ def run():
 
     now = get_now()
     print("now is " + str(now))
-    delta = timedelta(hours=2, minutes=44)
-    slot_date = now + timedelta(days=0)
+    delta = timedelta(hours=22)
+    slot_date = now + timedelta(days=1)
     slot_start = now + delta
-    slot_end = now + delta + timedelta(minutes=15)
+    slot_end = now + delta + timedelta(minutes=13)
 
     print(f'checking bookings from {slot_start} to {slot_end}')
 
