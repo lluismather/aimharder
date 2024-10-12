@@ -171,7 +171,7 @@ def book_session(args):
 
             if aimharder.last_response and aimharder.last_response.status_code == 200:
                 aimharder.check_booking_status()
-                retrieved_booking.time = "00:00:00"
+                retrieved_booking.date = retrieved_booking.date + timedelta(days=7)
                 retrieved_booking.save()
             else:
                 print('Booking failed')
