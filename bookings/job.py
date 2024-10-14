@@ -4,6 +4,7 @@ from bookings.models import Booking
 import time
 from zoneinfo import ZoneInfo
 from multiprocessing import Pool
+import django.db
 
 # aimharder class
 
@@ -106,75 +107,80 @@ def time_to_wait(booking, delta, now):
 
 
 def book_session(args):
+    idx, booking_id, delta, now = args
 
-    idx, booking, user, delta, now = args
-    booking_datetime = datetime.combine(booking.date, booking.time, tzinfo=ZoneInfo('Europe/Berlin'))
-            
-    while time_to_wait(booking_datetime, delta, now).seconds > 60:
-        now = get_now()
-        ttw = time_to_wait(booking_datetime, delta, now)
-        if ttw.seconds < 60:
-            break
-        print(f'waiting {time_to_wait(booking_datetime, delta, now).seconds} seconds...')
-        time.sleep(60)
-    
-    ttw = time_to_wait(booking_datetime, delta, now).seconds
-    print('waiting ' + str(ttw) + ' seconds...')
-    time.sleep(ttw)
-    
-    print('booking class for ' + user.name)
-    aimharder = AimHarderSession(user.email, user.password)
+    try:
+        # ORM queries will implicitly reconnect
+        booking = Booking.objects.get(id=booking_id)
+        user = booking.user
+        booking_datetime = datetime.combine(booking.date, booking.time, tzinfo=ZoneInfo('Europe/Berlin'))
 
-    if aimharder.last_response.status_code == 200:
+        while time_to_wait(booking_datetime, delta, now).seconds > 60:
+            now = get_now()
+            ttw = time_to_wait(booking_datetime, delta, now)
+            if ttw.seconds < 60:
+                break
+            print(f'waiting {time_to_wait(booking_datetime, delta, now).seconds} seconds...')
+            time.sleep(60)
 
-        print('login successful')
-        retrieved_booking = Booking.objects.get(id=booking.id)
+        ttw = time_to_wait(booking_datetime, delta, now).seconds
+        print('waiting ' + str(ttw) + ' seconds...')
+        time.sleep(ttw)
 
-        if not retrieved_booking.time:
-            print('booking already done, exiting...')
-            return f'booking {idx} already done'
+        print('booking class for ' + user.name)
+        aimharder = AimHarderSession(user.email, user.password)
 
-        aimharder.get_classes(retrieved_booking.date.strftime("%Y%m%d"))
+        if aimharder.last_response.status_code == 200:
+            print('login successful')
+            retrieved_booking = Booking.objects.get(id=booking.id)
 
-        if aimharder.class_list['bookings']:
+            if not retrieved_booking.time:
+                print('booking already done, exiting...')
+                return f'booking {idx} already done'
 
-            print(f"found {len(aimharder.class_list['bookings'])} classes")
+            aimharder.get_classes(retrieved_booking.date.strftime("%Y%m%d"))
 
-            try:
-                workout = [
-                    lesson for lesson in aimharder.class_list['bookings']
-                    if lesson['timeid'] == f'{retrieved_booking.time.strftime("%H%M")}_60' 
-                        and lesson['className'] == retrieved_booking.type
-                ][0]
-            except:
-                workout = None
+            if aimharder.class_list['bookings']:
+                print(f"found {len(aimharder.class_list['bookings'])} classes")
 
-            if not workout:
-                print('no class found, trying 90 mins')
                 try:
                     workout = [
                         lesson for lesson in aimharder.class_list['bookings']
-                        if lesson['timeid'] == f'{retrieved_booking.time.strftime("%H%M")}_90' 
+                        if lesson['timeid'] == f'{retrieved_booking.time.strftime("%H%M")}_60' 
                             and lesson['className'] == retrieved_booking.type
                     ][0]
                 except:
                     workout = None
 
-            xf_class = workout['className'] or 'Unknown'
-            xf_box = workout['boxName'] or 'Full Crossfit Valencia'
-            xf_coach = workout['coachName'] or 'Unknown Coach'
-            xf_time = workout['time'] or 'Unknown Time'
+                if not workout:
+                    print('no class found, trying 90 mins')
+                    try:
+                        workout = [
+                            lesson for lesson in aimharder.class_list['bookings']
+                            if lesson['timeid'] == f'{retrieved_booking.time.strftime("%H%M")}_90' 
+                                and lesson['className'] == retrieved_booking.type
+                        ][0]
+                    except:
+                        workout = None
 
-            # book the class
-            print('booking the class ' + xf_class + ' at ' + xf_time + ' with ' + xf_coach + ' at ' + xf_box)
-            aimharder.book_class(workout['id'])
+                xf_class = workout['className'] or 'Unknown'
+                xf_box = workout['boxName'] or 'Full Crossfit Valencia'
+                xf_coach = workout['coachName'] or 'Unknown Coach'
+                xf_time = workout['time'] or 'Unknown Time'
 
-            if aimharder.last_response and aimharder.last_response.status_code == 200:
-                aimharder.check_booking_status()
-                retrieved_booking.date = retrieved_booking.date + timedelta(days=7)
-                retrieved_booking.save()
-            else:
-                print('Booking failed')
+                # book the class
+                print('booking the class ' + xf_class + ' at ' + xf_time + ' with ' + xf_coach + ' at ' + xf_box)
+                aimharder.book_class(workout['id'])
+
+                if aimharder.last_response and aimharder.last_response.status_code == 200:
+                    aimharder.check_booking_status()
+                    retrieved_booking.date = retrieved_booking.date + timedelta(days=7)
+                    retrieved_booking.save()
+                else:
+                    print('Booking failed')
+    finally:
+        # Close connection after task is complete
+        django.db.connection.close()
 
 
 def run():
@@ -203,7 +209,9 @@ def run():
     pool_len = len(bookings) if len(bookings) < 2 else 2
 
     # run this in parallel
-    pool_args = [(idx, booking, booking.user, delta, now) for idx, booking in enumerate(bookings)]
+    pool_args = [(idx, booking.id, delta, now) for idx, booking in enumerate(bookings)]
+    # close db connections
+    django.db.connections.close_all()
     with Pool(pool_len) as p:
         logs = p.map(book_session, pool_args)
 
